@@ -289,7 +289,7 @@ class Neural {
 			break;
 		case 3:
 			// 200 0.20
-			n.setTransferFunction(new Sigmoid(50.0));
+			n.setTransferFunction(new Sigmoid(1.0));
 			break;
 		case 4:
 			// 200 0.35
@@ -314,7 +314,8 @@ class Neural {
 		init();
 		
 		int inputSize = 784;
-		int outputSize = 8;
+		int hiddenSize = 40;
+		int outputSize = 10;
 		DataSet ds = new DataSet(inputSize, outputSize);
 
 		int maxLen = kindNeuron.length;
@@ -326,13 +327,25 @@ class Neural {
 			kindNeuron = new int[] {0};
 		}
 		for(int i = 0; i < inputSize; i++) {
-			inputLayer.addNeuron(chooseNeural(kindNeuron[0]));
+			inputLayer.addNeuron(new Neuron());
 		}
-		for(int i = 0; i < inputSize / 16; i++) {
-			hiddenLayerOne.addNeuron(chooseNeural(kindNeuron[1%maxLen]));
+		int amountNeuronHidden = 0;
+		for(int i = 0; i < 5; i++) {
+			for(int j = 0; j < kindNeuron[j%maxLen]; j++) {
+				if( amountNeuronHidden >= 40 )
+					continue;
+				hiddenLayerOne.addNeuron(chooseNeural(i));
+				amountNeuronHidden++;
+			}
+		}
+		for(; amountNeuronHidden < hiddenSize; amountNeuronHidden++) {
+			hiddenLayerOne.addNeuron(chooseNeural(5));
+			amountNeuronHidden++;
 		}
 		for(int i = 0; i < outputSize; i++) {
-			outputLayer.addNeuron(chooseNeural(kindNeuron[(i+2)%maxLen]));
+			Neuron n = new Neuron();
+			n.setTransferFunction(new Sigmoid(1.0));
+			outputLayer.addNeuron(n);
 		}
 
 		try {
@@ -340,12 +353,17 @@ class Neural {
 //			Prob data_train = changeTypeProblem(data);
 			System.out.println("Data_train size: "+data_train.X.length+" * "+data_train.X[0].length);
 			System.out.println("Add data set");
-			long startTime = System.nanoTime();
-			for(int i = 0; i < data_train.X.length; i++) {
-				ds.addRow(data_train.X[i], truthValue[(int)data_train.y[i]]);
+			double data_train_y[] = new double[outputSize];
+			for(int i = 0; i < outputSize; i++) {
+				data_train_y[i] = 0;
 			}
-			long endTime = System.nanoTime();
-			System.out.println("Adding time = "+(endTime - startTime)/1000000000+" s");
+			int value = 0;
+			for(int i = 0; i < data_train.X.length; i++) {
+				value = (int)data_train.y[i];
+				data_train_y[ value ] = 1;
+				ds.addRow(data_train.X[i], data_train_y);
+				data_train_y[ value ] = 0;
+			}
 		} catch (Exception e) {
 			System.out.println("Error in Adding");
 			e.printStackTrace();
