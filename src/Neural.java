@@ -1,10 +1,16 @@
 import java.io.BufferedReader;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Writable;
 import org.neuroph.core.*;
 import org.neuroph.core.data.DataSet;
 import org.neuroph.core.events.LearningEvent;
@@ -16,47 +22,106 @@ import org.neuroph.nnet.comp.neuron.ThresholdNeuron;
 import org.neuroph.nnet.learning.BackPropagation;
 import org.neuroph.util.ConnectionFactory;
 
-public class Trial2 implements LearningEventListener {
-	private static List<List<Double>> data = new ArrayList<List<Double>>();
-	private static List<List<Double>> test = new ArrayList<List<Double>>();
+public class Neural implements LearningEventListener {
+//	private static List<List<Double>> data = new ArrayList<List<Double>>();
+//	private static List<List<Double>> test = new ArrayList<List<Double>>();
+	private static Prob data_train = null;
+	private static Prob data_test = null;
 	private static List<String> name = new ArrayList<String>();
+	private static int totalLine = 950;
+	private static double testRatio = 0.9;
+	private static int testCount = (int)(totalLine * testRatio);
+	private static int validateCount = totalLine - testCount;
+	private static int maxIterations = 10;
+	private static FileSystem fs = null;
+	private static boolean isHadoop = false;
+	private static int loopCheck = 1;
+	
+	public static boolean readyData() {
+		if( data_train != null )
+			return data_train.X.length > 0;
+		else
+			return false;
+	}
+	
+	Neural(){}
+	
+	Neural(int total_line, double test_ratio){
+		totalLine = total_line;
+		testRatio = test_ratio;
+	}
 
-	private static Neuron chooseNeuron(int i, int c) {
-		ThresholdNeuron n;
-		switch (i % 6) {
-		case 0:
-			n = new ThresholdNeuron(new WeightedSum(), new Linear(1.0));
-			break;
-		case 1:
-			n = new ThresholdNeuron(new WeightedSum(), new Ramp());
-			break;
-		case 2:
-			n = new ThresholdNeuron(new WeightedSum(), new Sgn());
-			break;
-		case 3:
-			n = new ThresholdNeuron(new WeightedSum(), new Sigmoid(1.0));
-			break;
-		case 4:
-			n = new ThresholdNeuron(new WeightedSum(), new Step());
-			break;
-		case 5:
-			n = new ThresholdNeuron(new WeightedSum(), new Tanh(1.0));
-			break;
-		default:
-			n = new ThresholdNeuron(new WeightedSum(), new Sigmoid(1.0));
-			break;
-		}
-		n.setThresh(0.3);
-		return n;
+	Neural(int total_line, double test_ratio, int max_interation, int loop){
+		totalLine = total_line;
+		testRatio = test_ratio;
+		maxIterations = max_interation;
+		loopCheck = loop;
+	}
+
+	Neural(int total_line, double test_ratio, int max_interation, int loop, FileSystem fs_in){
+		totalLine = total_line;
+		testRatio = test_ratio;
+		maxIterations = max_interation;
+		loopCheck = loop;
+		fs = fs_in;
+		isHadoop = true;
 	}
 
 	public static void main(String[] args) {
-		new Trial2().run();
+		int neuronSet[][] = new int[][] {	{ 0,0,0,0,0,0,0,0,0,0 },
+											{ 0,4,0,2,3,0,3,0,1,5 },
+											{ 2,1,2,2,4,5,2,1,2,2 },
+										};
+		Neural a = new Neural(9000, 0.9, 20, 1);
+		try {
+			System.out.println("Read data");
+			init("train.csv");
+		} catch (Exception e) {
+			System.out.println("Read file error!");
+		}
+		Result output = a.run(neuronSet[0]);
+		Result output2 = a.run(neuronSet[1]);
+		Result output3 = a.run(neuronSet[2]);
+		System.out.println(output.result);
+		System.out.println(output2.result);
+		System.out.println(output3.result);
 	}
+	
+	public static void init(String file_link) throws Exception {
+		if( readyData() )
+			return;
+		List<List<Double>> data = new ArrayList<List<Double>>();
+		List<List<Double>> test = new ArrayList<List<Double>>();
+		try {
+			readfile(file_link, data, test);
+			data_train = changeTypeProblem(data);
+			data = null;
+			data_test = changeTypeProblem(test);
+			test = null;
+		} catch (Exception e) {
+			System.out.println("Error in init data");
+			e.printStackTrace();
+			throw e;
+		}
+		System.out.println("Data size: " + data_train.X.length + " * " + data_train.X[0].length);
+		System.out.println("Convert Data");
+	}
+	
+	public Result run(int neuronSet[]) {
+		Result best = new Result(-2, "");
+		for(int i = 0; i < loopCheck; i++) {
+			Result tmp = runSingle(neuronSet);
+			if( tmp.point > best.point ) {
+				best = tmp;
+			}
+		}
+		return best;
+	}
+	
+	public Result runSingle(int neuronSet[]) {
 
-	public Result run() {
-
-		int neuronSet[] = new int[] { 1, 1, 1, 4, 1, 2 };
+		Result output = new Result();
+		output.result = "";
 
 		int inputSize = 6;
 		int hiddenSize = 10;
@@ -92,18 +157,7 @@ public class Trial2 implements LearningEventListener {
 			outputLayer.addNeuron(chooseNeuron(3, outputSize));
 		}
 
-		Prob data_train = null;
-		int totalLine = 950;
-		double testRatio = 0.9;
-		int testCount = (int)(totalLine * testRatio);
-		int validateCount = totalLine - testCount;
 		try {
-			System.out.println("Read data");
-			readfile("train.csv", testCount, validateCount);
-			System.out.println("Data size: " + data.size() + " * " + data.get(0).size());
-
-			System.out.println("Convert Data");
-			data_train = changeTypeProblem(data);
 			System.out.println("Train data: " + testCount + " | Validation data: " + validateCount);
 
 			for (int i = 0; i < testCount; i++) {
@@ -116,34 +170,40 @@ public class Trial2 implements LearningEventListener {
 		} catch (Exception e) {
 			System.out.println("Error in Adding");
 			e.printStackTrace();
+			output.result += "Error in Adding: " + e.getMessage() + "\n";
+			output.result += "Train data: " + ds.size() + "\n";
 		}
 		System.out.println("Start training");
-
+		
 		NeuralNetwork<BackPropagation> ann = new NeuralNetwork<BackPropagation>();
-		ann.addLayer(0, inputLayer);
-		ann.addLayer(1, hiddenLayerOne);
-		ConnectionFactory.fullConnect(ann.getLayerAt(0), ann.getLayerAt(1));
-		ann.addLayer(2, outputLayer);
-		ConnectionFactory.fullConnect(ann.getLayerAt(1), ann.getLayerAt(2));
-		ConnectionFactory.fullConnect(ann.getLayerAt(0), ann.getLayerAt(ann.getLayersCount() - 1), false);
-		ann.setInputNeurons(inputLayer.getNeurons());
-		ann.setOutputNeurons(outputLayer.getNeurons());
-		ann.randomizeWeights(-1, 1);
-
-		BackPropagation bP = new BackPropagation();
-		bP.setMaxIterations(20);
-		bP.setLearningRate(0.01);
-		bP.addListener(this);
-
-		long startTime = System.nanoTime();
-		ann.learn(ds, bP);
-		long endTime = System.nanoTime();
-		System.out.println("Finished in: " + (endTime - startTime) / 1000000000 + "s");
-		Result output = new Result();
+		try {
+			ann.addLayer(0, inputLayer);
+			ann.addLayer(1, hiddenLayerOne);
+			ConnectionFactory.fullConnect(ann.getLayerAt(0), ann.getLayerAt(1));
+			ann.addLayer(2, outputLayer);
+			ConnectionFactory.fullConnect(ann.getLayerAt(1), ann.getLayerAt(2));
+			ConnectionFactory.fullConnect(ann.getLayerAt(0), ann.getLayerAt(ann.getLayersCount() - 1), false);
+			ann.setInputNeurons(inputLayer.getNeurons());
+			ann.setOutputNeurons(outputLayer.getNeurons());
+			ann.randomizeWeights(-1, 1);
+	
+			BackPropagation bP = new BackPropagation();
+			bP.setMaxIterations(maxIterations);
+			bP.setLearningRate(0.01);
+			bP.addListener(this);
+	
+			long startTime = System.nanoTime();
+			ann.learn(ds, bP);
+			long endTime = System.nanoTime();
+			System.out.println("Finished in: " + (endTime - startTime) / 1000000000 + "s");
+		} catch (Exception e) {
+			System.out.println("Error in Training");
+			e.printStackTrace();
+			output.result += "Error in Training: " + e.getMessage() + "\n";
+		}
 
 		try {
 			System.out.println("Start testing");
-			Prob data_test = changeTypeProblem(test);
 			boolean result[] = new boolean[data_test.X.length];
 			double threshold = 0.5;
 			int count = 0;
@@ -165,27 +225,60 @@ public class Trial2 implements LearningEventListener {
 			
 			/*===========*/
 			ANNResult aresult = new ANNResult(ann, ((float) count / result.length));
-			output.result = aresult.getNeuralNetworkInformation();
-			output.point = aresult.getRatio();
+			output.result += aresult.getNeuralNetworkInformation();
+			output.point += aresult.getRatio();
 			/*===========*/
 		} catch (Exception e) {
 			System.out.println("Error in get result");
 			e.printStackTrace();
+			output.result += "Error in get result: " + e.getMessage() + "\n";
 		}
+//		System.out.println(output.result);
 		return output;
 	}
+	
+	private static Neuron chooseNeuron(int i, int c) {
+		ThresholdNeuron n;
+		switch (i % 6) {
+		case 0:
+			n = new ThresholdNeuron(new WeightedSum(), new Linear(1.0));
+			break;
+		case 1:
+			n = new ThresholdNeuron(new WeightedSum(), new Ramp());
+			break;
+		case 2:
+			n = new ThresholdNeuron(new WeightedSum(), new Sgn());
+			break;
+		case 3:
+			n = new ThresholdNeuron(new WeightedSum(), new Sigmoid(1.0));
+			break;
+		case 4:
+			n = new ThresholdNeuron(new WeightedSum(), new Step());
+			break;
+		case 5:
+			n = new ThresholdNeuron(new WeightedSum(), new Tanh(1.0));
+			break;
+		default:
+			n = new ThresholdNeuron(new WeightedSum(), new Sigmoid(1.0));
+			break;
+		}
+		n.setThresh(0.3);
+		return n;
+	}
 
-	public static void readfile(String file_link, int train_leng, int test_leng) throws Exception {
-		int limit = train_leng + test_leng;
-		File file = new File(file_link);
+	public static void readfile(String file_link, List<List<Double>> data, List<List<Double>> test) throws Exception {
 		BufferedReader reader = null;
 
 		try {
-			reader = new BufferedReader(new FileReader(file));
+			if( isHadoop ) {
+				reader = new BufferedReader(new InputStreamReader(fs.open(new Path(file_link))));
+			} else {
+				reader = new BufferedReader(new FileReader(new File(file_link)));				
+			}
 			String text = null;
 
 			int count = -1;
-			while ((text = reader.readLine()) != null && count < limit) {
+			while ((text = reader.readLine()) != null && count < totalLine) {
 				if (count == -1) {
 					name.add(text);
 					count++;
@@ -198,8 +291,11 @@ public class Trial2 implements LearningEventListener {
 					count++;
 				}
 			}
-
-			for (int i = 0; i < test_leng; i++) {
+			totalLine = data.size();
+			testCount = (int)(totalLine * testRatio);
+			validateCount = totalLine - testCount;
+			
+			for (int i = 0; i < validateCount; i++) {
 				test.add(data.get(data.size() - 1));
 				data.remove(data.size() - 1);
 			}
@@ -278,8 +374,9 @@ public class Trial2 implements LearningEventListener {
 		
 		public String getNeuralNetworkInformation() {
 			int layerCount = ann.getLayersCount();
-			String result = "";
+			String result = "", output = "";
 			for(int i = 0; i < layerCount; i++) {
+				result = "";
 				Layer layer = ann.getLayerAt(i);
 				if(i == 0) {
 					System.out.println("Input layer: " + layer.getNeuronsCount() + " neuron(s)");
@@ -321,16 +418,51 @@ public class Trial2 implements LearningEventListener {
 //					System.out.println();
 					result += "\n";
 				}
-				System.out.println(result);
+//				System.out.println(result);
+				output += result;
 			}
-			System.out.println();
-			System.out.format("Ratio: %.2f/1.0", ratio);
-			return result;
+//			System.out.println();
+//			System.out.format("Ratio: %.2f/1.0", ratio);
+			return output;
 		}
 	}
 }
 
-class Result {
+class Result implements Writable {
+	public int leng = 0;
 	public double point = 0;
 	public String result = "";
+	
+	Result(){
+		result = "";
+	}
+	
+	Result(double p, String r) {
+		point = p;
+		result = r;
+		leng = r.length();
+	}
+	
+	public String toString() {
+		return point + "|" + result;
+	}
+
+	@Override
+	public void readFields(DataInput in) throws IOException {
+		point = in.readDouble();
+		result = in.readUTF();
+		leng = result.length();
+	}
+
+	@Override
+	public void write(DataOutput out) throws IOException {
+		out.writeDouble(point);
+		out.writeUTF(result);
+	}
+	
+	public static Result read(DataInput in) throws IOException {
+		Result r = new Result();
+		r.readFields(in);
+		return r;
+	}
 }

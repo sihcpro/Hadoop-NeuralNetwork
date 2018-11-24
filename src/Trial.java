@@ -9,7 +9,7 @@ import org.neuroph.core.*;
 import org.neuroph.core.data.DataSet;
 import org.neuroph.core.input.WeightedSum;
 import org.neuroph.core.transfer.*;
-import org.neuroph.nnet.MultiLayerPerceptron;
+//import org.neuroph.nnet.MultiLayerPerceptron;
 import org.neuroph.nnet.comp.neuron.InputNeuron;
 import org.neuroph.nnet.learning.BackPropagation;
 import org.neuroph.util.ConnectionFactory;
@@ -255,8 +255,9 @@ public class Trial {
 			Prob data_test = changeTypeProblem(test);
 			System.out.println("Start get results");
 			boolean result[] = new boolean[data_test.X.length];
-			boolean result2[] = new boolean[data_test.X.length];
-			int count = 0, count2 = 0;
+			int count = 0;
+//			boolean result2[] = new boolean[data_test.X.length];
+//			int count2 = 0;
 			for(int i = 0; i < data_test.X.length; i++) {
 				ann.setInput(data_test.X[i]);
 				ann.calculate();
@@ -368,29 +369,29 @@ public class Trial {
 	}
 	
 	
-	private static int nearest(double []result) {
-		int num = 0, count = 0, bestmatch = 0;
-		double x, y;
-		try {
-			for(int i = 0; i < 10; i++) {
-				count = result.length;
-				for(int j = 0; j < result.length; j++) {
-					x = result[j];
-					y = truthValue[i][j];
-					if(x * y == 0 && x + y != 0) {
-						count--;
-					}
-				}
-				if( count > bestmatch ) {
-					bestmatch = count;
-					num = i;
-				}
-			}
-			return num;
-		} catch (Exception e) {
-			return num;
-		}
-	}	
+//	private static int nearest(double []result) {
+//		int num = 0, count = 0, bestmatch = 0;
+//		double x, y;
+//		try {
+//			for(int i = 0; i < 10; i++) {
+//				count = result.length;
+//				for(int j = 0; j < result.length; j++) {
+//					x = result[j];
+//					y = truthValue[i][j];
+//					if(x * y == 0 && x + y != 0) {
+//						count--;
+//					}
+//				}
+//				if( count > bestmatch ) {
+//					bestmatch = count;
+//					num = i;
+//				}
+//			}
+//			return num;
+//		} catch (Exception e) {
+//			return num;
+//		}
+//	}	
 	
 	
 	public static void readfile(String file_link, int train_leng, int test_leng) throws Exception{
