@@ -23,8 +23,6 @@ import org.neuroph.nnet.learning.BackPropagation;
 import org.neuroph.util.ConnectionFactory;
 
 public class Neural implements LearningEventListener {
-//	private static List<List<Double>> data = new ArrayList<List<Double>>();
-//	private static List<List<Double>> test = new ArrayList<List<Double>>();
 	private static Prob data_train = null;
 	private static Prob data_test = null;
 	private static List<String> name = new ArrayList<String>();
@@ -390,39 +388,27 @@ public class Neural implements LearningEventListener {
 					Weight[] weight = neuron.getWeights();
 					String ntype = neuron.getTransferFunction().toString();
 					if(ntype.contains("Linear")) {
-//						System.out.print("LINEAR:\t\t");
 						result += "LINEAR : ";
 					} else if(ntype.contains("Ramp")) {
-//						System.out.print("RAMP:\t\t");
 						result += "RAMP   : ";
 					} else if(ntype.contains("Sgn")) {
-//						System.out.print("SGIN:\t\t");
 						result += "SGIN   : ";
 					} else if(ntype.contains("Sigmoid")) {
-//						System.out.print("SIGMOID:\t");
 						result += "SIGMOI : ";
 					} else if(ntype.contains("Step")) {
-//						System.out.print("STEP:\t\t");
 						result += "STEP   : ";
 					} else if(ntype.contains("Tanh")) {
-//						System.out.print("TANH:\t\t");
 						result += "TANH   : ";
 					} else {
-//						System.out.print("");
 						result += "LINEAR : ";
 					}
 					for(int k = 0; k < weight.length; k++) {
-//						System.out.format("%10.5f", weight[k].value);
 						result += String.format("%10.5f", weight[k].value);
 					}
-//					System.out.println();
 					result += "\n";
 				}
-//				System.out.println(result);
 				output += result;
 			}
-//			System.out.println();
-//			System.out.format("Ratio: %.2f/1.0", ratio);
 			return output;
 		}
 	}
