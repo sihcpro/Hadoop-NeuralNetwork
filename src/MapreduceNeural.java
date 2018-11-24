@@ -17,9 +17,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 //hdfs namenode -format
 
 public class MapreduceNeural {
-	private static List< List<Integer> > data = new ArrayList< List<Integer> >();
-	private static List< List<Integer> > test = new ArrayList< List<Integer> >();
-	private static List<String> name = new ArrayList<String>();
+//	private static List< List<Integer> > data = new ArrayList< List<Integer> >();
+//	private static List< List<Integer> > test = new ArrayList< List<Integer> >();
+//	private static List<String> name = new ArrayList<String>();
 //	private static Neural neural;
 //	private static int lengthOutputLayer = 8;
 //	private static int inputSize = 784;
@@ -98,7 +98,7 @@ public class MapreduceNeural {
 	}
 
 	public static class NeuralReducer extends Reducer<Text,Result,Text,Result> {
-		private Text output = new Text();
+		private static Result result = new Result(-1, "");
 
 //		public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
 //			String sum = "";
@@ -111,12 +111,12 @@ public class MapreduceNeural {
 
 		public void reduce(Text key, Iterable<Result> values, Context context) throws IOException, InterruptedException {
 //			String sum = "";
-			Result r = null;
 			for (Result val : values) {
-				r = val;
+				if( val.point > result.point ) {
+					result = new Result(val.point, "\n" + key.toString() + "\n" + val.result);
+				}
 			}
-			output.set(new Text(""));
-			context.write(key, r);
+			context.write(new Text("result"), result);
 		}
 	}
 
@@ -192,46 +192,6 @@ public class MapreduceNeural {
 	}
 
 
-	public static void readfile(FileSystem fs, String file_link, int limit, int test_leng) throws Exception{
-		int limit_read = limit + test_leng;
-		BufferedReader in = null;
-		
-		try {
-			in = new BufferedReader(new InputStreamReader(fs.open(new Path(file_link))));
-		    String text = null;
-		    
-		    int count = -1;
-		    while ((text = in.readLine()) != null && count < limit_read) {
-		    	if(count == -1) {
-		    		name.add(text);
-		    		count++;
-		    	} else {
-		    		String[] tmp = text.split(",");
-		    		data.add(new ArrayList<Integer>());
-		    		for(String i : tmp) {
-		    			data.get(count).add(Integer.parseInt(i));
-		    		}
-		    		count++;
-		    	}
-		    }
-
-			for(int i = 0; i < test_leng; i++) {
-				test.add(data.get(data.size()-1));
-				data.remove(data.size()-1);
-			}
-		} catch (FileNotFoundException e) {
-		    e.printStackTrace();
-		} catch (IOException e) {
-		    e.printStackTrace();
-		} finally {
-		    try {
-		        if (in != null) {
-		            in.close();
-		        }
-		    } catch (IOException e) {
-		    }
-		}
-	}
 }
 
 

@@ -391,25 +391,25 @@ public class Neural implements LearningEventListener {
 					String ntype = neuron.getTransferFunction().toString();
 					if(ntype.contains("Linear")) {
 //						System.out.print("LINEAR:\t\t");
-						result += "LINEAR :\t";
+						result += "LINEAR : ";
 					} else if(ntype.contains("Ramp")) {
 //						System.out.print("RAMP:\t\t");
-						result += "RAMP   :\t";
+						result += "RAMP   : ";
 					} else if(ntype.contains("Sgn")) {
 //						System.out.print("SGIN:\t\t");
-						result += "SGIN   :\t";
+						result += "SGIN   : ";
 					} else if(ntype.contains("Sigmoid")) {
 //						System.out.print("SIGMOID:\t");
-						result += "SIGMOI :\t";
+						result += "SIGMOI : ";
 					} else if(ntype.contains("Step")) {
 //						System.out.print("STEP:\t\t");
-						result += "STEP   :\t";
+						result += "STEP   : ";
 					} else if(ntype.contains("Tanh")) {
 //						System.out.print("TANH:\t\t");
-						result += "TANH   :\t";
+						result += "TANH   : ";
 					} else {
 //						System.out.print("");
-						result += "LINEAR :\t";
+						result += "LINEAR : ";
 					}
 					for(int k = 0; k < weight.length; k++) {
 //						System.out.format("%10.5f", weight[k].value);
