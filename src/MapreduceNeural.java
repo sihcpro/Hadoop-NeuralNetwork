@@ -168,7 +168,7 @@ public class MapreduceNeural {
 			conf.setInt("total_line", total_line);
 			System.out.println("Total line set : " + total_line);
 		} catch (Exception e) {
-			conf.setInt("total_line", 900);
+			conf.setInt("total_line", 100);
 			System.out.println("Total line default : 100");
 		}
 		try {
@@ -185,7 +185,7 @@ public class MapreduceNeural {
 			System.out.println("Max Iterationsset set : " + args[5]);
 		} catch (Exception e) {
 			conf.setInt("maxIterations", 20);
-			System.out.println("Max Iterationsset default : 10");
+			System.out.println("Max Iterationsset default : 20");
 		}
 		try {
 			int loop = Integer.parseInt(args[6]);
