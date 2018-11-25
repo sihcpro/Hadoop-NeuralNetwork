@@ -193,7 +193,7 @@ public class Neural implements LearningEventListener {
 			long startTime = System.nanoTime();
 			ann.learn(ds, bP);
 			long endTime = System.nanoTime();
-			System.out.println("Finished in: " + (endTime - startTime) / 1000000000 + "s");
+			System.out.println("Finished in: " + (endTime - startTime) / 1000000000.0 + "s");
 		} catch (Exception e) {
 			System.out.println("Error in Training");
 			e.printStackTrace();

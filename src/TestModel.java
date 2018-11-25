@@ -10,11 +10,7 @@ import org.neuroph.core.Layer;
 import org.neuroph.core.NeuralNetwork;
 import org.neuroph.core.Neuron;
 import org.neuroph.core.Weight;
-import org.neuroph.core.transfer.Linear;
-import org.neuroph.core.transfer.Ramp;
-import org.neuroph.core.transfer.Sgn;
-import org.neuroph.core.transfer.Sigmoid;
-import org.neuroph.core.transfer.TransferFunction;
+import org.neuroph.core.transfer.*;
 import org.neuroph.nnet.comp.neuron.InputNeuron;
 import org.neuroph.nnet.learning.BackPropagation;
 import org.neuroph.util.ConnectionFactory;
@@ -75,21 +71,26 @@ public class TestModel {
 		ann.setInputNeurons(inputLayer.getNeurons());
 		ann.setOutputNeurons(outputLayer.getNeurons());
 
-		TransferFunction[] transarray = { new Linear(), new Linear(), new Ramp(), new Ramp(), new Ramp(), new Ramp(),
-				new Sgn(), new Sgn(), new Sgn(), new Sigmoid() };
-		double[][] weightHiddenLayer = { { -0.21416, -1.70727, 1.11227, 0.57532, -0.46455, -0.59969 },
-				{ -0.21416, -1.70727, 1.11227, 0.57532, -0.46455, -0.59969 },
-				{ -0.08718, 2.33875, -3.40992, -1.18772, 0.33032, 2.36377 },
-				{ -0.02908, -0.56299, 2.15620, 0.40209, -0.82653, -0.71587 },
-				{ -0.91916, -0.24767, 1.60806, -0.43138, -0.01356, -0.46046 },
-				{ 1.10098, -0.12995, 0.78374, -0.61391, 0.70339, 0.53580 },
-				{ -0.13611, 0.21901, -0.31842, -0.34229, -0.85729, 0.95568 },
-				{ 0.96965, -1.98639, 2.07623, -0.32663, -0.96285, -0.53443 },
-				{ -0.46673, -0.53107, 1.09887, -0.29202, -0.85990, -1.03142 },
-				{ 0.65444, 2.41845, -1.44543, 0.19785, 0.31301, 2.20465 },
-				{ 0.77626, -1.01033, 0.30118, -0.63921, 0.20845, -0.45220 } };
-		double[] weightOutputLayer = { -2.26483, 4.51318, -1.78639, -0.55019, 0.95590, 0.62558, -1.19854, -1.86492,
-				1.52334, 0.35091, -0.92233, 1.55792, -1.07835, 0.00218, -0.01617, 1.73879 };
+		TransferFunction[] transarray = {
+				new Ramp(),
+				new Sgn(), new Sgn(), new Sgn(), new Sgn(), new Sgn(),
+				new Sigmoid(),
+				new Step(), new Step(),
+				new Tanh(),
+				};
+		double[][] weightHiddenLayer = { { 0.81582, -0.38660, 0.61849, 0.06363, -0.72094, 0.79925 },
+				{ -0.93242, 0.88551, -0.38513, 0.76826, 0.29200, 0.32037 },
+				{ -0.26446, -0.74611, 0.79431, 0.14814, 0.16109, 0.27192 },
+				{ 0.92636, -0.52137, -0.37123, -0.25990, 0.95669, -0.28561 },
+				{ 0.64970, -0.44057, 0.51485, 0.62722, 0.68505, 0.72473 },
+				{ 0.41644, -1.08351, -0.20779, 0.63705, -0.08367, -1.12827 },
+				{ -0.01389, -0.93703, -0.02113, -0.33359, 0.31248, -0.74139 },
+				{ -0.91919, -0.62536, -0.03147, -0.96627, 0.96529, -1.06998 },
+				{ 0.27612, -0.69984, 0.16853, -0.22499, -0.66187, -0.87747 },
+				{ 0.11135, -0.04549, -0.80816, 0.78771, 0.82315, 0.03679 } };
+		double[] weightOutputLayer = { -0.63077, 0.46545, -0.84510, 0.49579, -0.39947, -1.11113, -0.92727, -0.48606, -0.79375, 0.75722,
+				0.00191, -0.00467, -0.45812, -0.36849, 1.03047, 0.72785 };
+		
 		for (int i = 0; i < hiddenSize; i++) {
 			Neuron current = hiddenLayer.getNeuronAt(i);
 			current.setTransferFunction(transarray[i]);
