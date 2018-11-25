@@ -2,11 +2,8 @@ import java.io.*;
 import java.util.*;
 
 import org.apache.hadoop.conf.Configuration;
-//import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-//import org.apache.hadoop.io.IOUtils;
-//import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -17,25 +14,13 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 //hdfs namenode -format
 
 public class MapreduceNeural {
-	private static List< List<Integer> > data = new ArrayList< List<Integer> >();
-	private static List< List<Integer> > test = new ArrayList< List<Integer> >();
-	private static List<String> name = new ArrayList<String>();
-//	private static Neural neural;
-//	private static int lengthOutputLayer = 8;
-//	private static int inputSize = 784;
-//	private static int outputSize = 8;
-//	public static DataSet ds = new DataSet(inputSize, outputSize);
 
 	public static class TokenizerMapper extends Mapper<Object, Text, Text, Result>{
-
-//	private final static IntWritable one = new IntWritable(1);
-//	private Text word = new Text();
 
 	public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 		Configuration conf = context.getConfiguration();
 		FileSystem fs = FileSystem.get(conf);
 		String file_link, itr[] = value.toString().split("\n");
-//		Prob data_train, data_test;
 		int total_line = 20, maxIterations = 10, loop = 1;
 		double ratio = 0.9;
 		try {
@@ -44,21 +29,15 @@ public class MapreduceNeural {
 			ratio  = conf.getFloat("ratio", (float) 0.9) % 1.0;
 			maxIterations = conf.getInt("maxIterations", 10);
 			loop = conf.getInt("loop", 1);
-//			data_train = Neural.changeTypeProblem(transferToData(conf.get("data")));
-//			data_test  = Neural.changeTypeProblem(transferToData(conf.get("test")));
 		} catch (Exception e) {
 			Result r = new Result(0, "Error"+e.getMessage());
 			context.write(new Text("Error"), r);
-//			context.write(new Text("Error"), new Text("Error"+e.getMessage()));
-//			context.write(new Text("Error"), new ObjectWritable(Result.class, r));
 			return;
 		}
 		Neural cluster = new Neural(total_line, ratio, maxIterations, loop, fs);;
 		try {
 			Neural.init(file_link);
-////		context.write(new Text("read file"), new Text("done"));
 		} catch (Exception e) {
-////		context.write(new Text("read file"), new Text("error " + e.getMessage()));
 		}
 		for ( String i : itr) {
 			try {
@@ -69,13 +48,9 @@ public class MapreduceNeural {
 				}
 				Result answer = cluster.run(kindNeural);
 				context.write(new Text(i), answer);
-//				context.write(new Text(i), new Text("-->  " +answer.result));
-//				context.write(new Text(i), new ObjectWritable(Result.class, answer));
 			} catch (Exception e) {
 				Result r = new Result(0, " !!! "+e.getMessage());
 				context.write(new Text(i), r);
-//				context.write(new Text(i), new Text(" !!! "+e.getMessage()));
-//				context.write(new Text(i), new ObjectWritable(Result.class, r));
 			}
 		}
 	}
@@ -98,25 +73,15 @@ public class MapreduceNeural {
 	}
 
 	public static class NeuralReducer extends Reducer<Text,Result,Text,Result> {
-		private Text output = new Text();
-
-//		public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-//			String sum = "";
-//			for (Text val : values) {
-//				sum += val.toString();
-//			}
-//			result.set(new Text(sum));
-//			context.write(key, result);
-//		}
+		private static Result result = new Result(-1, "");
 
 		public void reduce(Text key, Iterable<Result> values, Context context) throws IOException, InterruptedException {
-//			String sum = "";
-			Result r = null;
 			for (Result val : values) {
-				r = val;
+				if( val.point > result.point ) {
+					result = new Result(val.point, "\n" + key.toString() + "\n" + val.result);
+				}
 			}
-			output.set(new Text(""));
-			context.write(key, r);
+			context.write(new Text("result"), result);
 		}
 	}
 
@@ -124,6 +89,69 @@ public class MapreduceNeural {
 		Configuration conf = new Configuration();
 		FileSystem fs = FileSystem.get(conf);
 		BufferedReader in;
+		String inputFile = "/inputNeural", outputFile = "/output";
+		try {
+			Path input = new Path(args[0]);
+			if( fs.exists(input) ) {
+				inputFile = args[0];
+				System.out.println("File input set : " + inputFile);
+			} else if(fs.exists(new Path("/inputNeural"))) {
+				inputFile = "/inputNeural";
+				System.out.println("File input default : " + inputFile);
+			}
+		} catch (Exception e) {
+			if(fs.exists(new Path("/inputNeural"))) {
+				inputFile = "/inputNeural";
+				System.out.println("File input default : " + inputFile);
+			} else {
+				throw new Error("Wrong file input");
+			}
+		}
+		try {
+			Path output = new Path(args[1]);
+			if ( !fs.exists(output) ) {
+				outputFile = args[1];
+				System.out.println("File output set : " + outputFile);
+			} else if ( !fs.exists(new Path("/output")) ) {
+				outputFile = "/output";
+				System.out.println("File output default : " + outputFile);
+			} else if ( !fs.exists(new Path("/output" + args[args.length-1])) ) {
+				outputFile = "/output" + args[args.length-1];
+				System.out.println("File output default : " + outputFile);
+			}
+		} catch (Exception e) {
+			try {
+				if( !fs.exists(new Path("/output")) ) {
+					outputFile = "/output";
+					System.out.println("File output default : " + outputFile);
+				} else if ( !fs.exists(new Path("/output" + args[args.length-1])) ) {
+					outputFile = "/output" + args[args.length-1];
+					System.out.println("File output default : " + outputFile);
+				}
+			} catch (Exception e2) {
+				boolean delete = false;
+				try {
+					fs.delete(new Path("/output/_SUCCESS"), delete);
+				} catch (Exception e3) {
+				}
+				try {
+					fs.delete(new Path("/output/part-r-00000"), delete);
+				} catch (Exception e3) {
+				}
+				try {
+					fs.delete(new Path("/output"), delete);
+				} catch (Exception e3) {
+					e3.printStackTrace();
+				}
+				if (!delete) {
+					System.out.println("Path /output had been deleted");
+					System.out.println("File output default : " + outputFile);
+					outputFile = "/output";
+				} else {
+					throw new Error("Wrong output file!");
+				}
+			}
+		}
 		try {
 			in = new BufferedReader(new InputStreamReader(fs.open(new Path(args[2]))));
 			if( in.ready() && in.readLine().length() > 0 ) {
@@ -140,7 +168,7 @@ public class MapreduceNeural {
 			conf.setInt("total_line", total_line);
 			System.out.println("Total line set : " + total_line);
 		} catch (Exception e) {
-			conf.setInt("total_line", 900);
+			conf.setInt("total_line", 100);
 			System.out.println("Total line default : 100");
 		}
 		try {
@@ -157,7 +185,7 @@ public class MapreduceNeural {
 			System.out.println("Max Iterationsset set : " + args[5]);
 		} catch (Exception e) {
 			conf.setInt("maxIterations", 20);
-			System.out.println("Max Iterationsset default : 10");
+			System.out.println("Max Iterationsset default : 20");
 		}
 		try {
 			int loop = Integer.parseInt(args[6]);
@@ -167,81 +195,19 @@ public class MapreduceNeural {
 			conf.setInt("loop", 1);
 			System.out.println("Loop default : 1");
 		}
-
-//		conf.set("data", data.toString().replace(" ", ""));
-//		conf.set("test", test.toString().replace(" ", ""));
-		
-//		System.out.println("file link     : " + conf.get("file_link"));
-//		System.out.println("total line   : " + conf.getInt("total_line", 101));
-//		System.out.println("limit test    : " + conf.getFloat("ratio", (float) 0.91));
-//		System.out.println("maxIterations : " + conf.getInt("maxIterations", 21));
-//		System.out.println("loop : " + conf.getInt("loop", 51));
 		
 		Job job = Job.getInstance(conf, "Train neural");
-//		job.setMapOutputKeyClass(Text.class);
-//		job.setMapOutputValueClass(ObjectWritable.class);
 		job.setJarByClass(MapreduceNeural.class);
 		job.setMapperClass(TokenizerMapper.class);
 		job.setCombinerClass(NeuralReducer.class);
 		job.setReducerClass(NeuralReducer.class);
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Result.class);
-		FileInputFormat.addInputPath(job, new Path(args[0]));
-		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		FileInputFormat.addInputPath(job, new Path(inputFile));
+		FileOutputFormat.setOutputPath(job, new Path(outputFile));
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}
 
 
-	public static void readfile(FileSystem fs, String file_link, int limit, int test_leng) throws Exception{
-		int limit_read = limit + test_leng;
-		BufferedReader in = null;
-		
-		try {
-			in = new BufferedReader(new InputStreamReader(fs.open(new Path(file_link))));
-		    String text = null;
-		    
-		    int count = -1;
-		    while ((text = in.readLine()) != null && count < limit_read) {
-		    	if(count == -1) {
-		    		name.add(text);
-		    		count++;
-		    	} else {
-		    		String[] tmp = text.split(",");
-		    		data.add(new ArrayList<Integer>());
-		    		for(String i : tmp) {
-		    			data.get(count).add(Integer.parseInt(i));
-		    		}
-		    		count++;
-		    	}
-		    }
-
-			for(int i = 0; i < test_leng; i++) {
-				test.add(data.get(data.size()-1));
-				data.remove(data.size()-1);
-			}
-		} catch (FileNotFoundException e) {
-		    e.printStackTrace();
-		} catch (IOException e) {
-		    e.printStackTrace();
-		} finally {
-		    try {
-		        if (in != null) {
-		            in.close();
-		        }
-		    } catch (IOException e) {
-		    }
-		}
-	}
 }
-
-
-
-
-
-
-
-//--------------------------------------------------------------------------
-
-
-
 
