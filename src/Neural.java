@@ -344,12 +344,6 @@ public class Neural implements LearningEventListener {
 		return prob;
 	}
 
-	public static class Prob {
-		public String[] name;
-		public double[][] X;
-		public double[] y;
-	}
-
 	@Override
 	public void handleLearningEvent(LearningEvent event) {
 		BackPropagation bp = (BackPropagation) event.getSource();
@@ -412,6 +406,12 @@ public class Neural implements LearningEventListener {
 			return output;
 		}
 	}
+}
+
+class Prob {
+	public String[] name;
+	public double[][] X;
+	public double[] y;
 }
 
 class Result implements Writable {
